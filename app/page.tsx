@@ -7,26 +7,75 @@ import { useState } from "react";
 export default function LandingPage() {
   const router = useRouter();
   const [files, setFiles] = useState<File[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // Form states required by your FastAPI /review parameters
+  const [employeeName, setEmployeeName] = useState<string>("Vedant Padole");
+  const [department, setDepartment] = useState<string>("Engineering");
+  const [grade, setGrade] = useState<string>("L4");
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
-
     const uploadedFiles = Array.from(e.target.files);
     setFiles(uploadedFiles);
   };
 
-  const handleStartReview = () => {
+  const handleStartReview = async () => {
     if (files.length === 0) {
       alert("Please upload at least one receipt.");
       return;
     }
 
-    router.push("/review");
+    if (!employeeName || !department || !grade) {
+      alert("Please fill out all employee metadata fields.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // 1. Prepare Multipart FormData matching the backend expectations
+      const formData = new FormData();
+      formData.append("employee_name", employeeName);
+      formData.append("department", department);
+      formData.append("grade", grade);
+      
+      files.forEach((file) => {
+        formData.append("files", file);
+      });
+
+      // 2. Fetch from your backend environment setup
+      const backendBaseUrl = process.env.NEXT_PUBLIC_API_URL || "https://vedant1405-greengrowth.hf.space";
+      const cleanUrl = backendBaseUrl.endsWith("/") ? backendBaseUrl.slice(0, -1) : backendBaseUrl;
+
+      // Point directly to your FastAPI @app.post("/review") route
+      const response = await fetch(`${cleanUrl}/review`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Backend Error: ${response.statusText} (${response.status})`);
+      }
+
+      const data = await response.json();
+
+      // 3. Cache the pipeline graph results into LocalStorage
+      localStorage.setItem("reviewResult", JSON.stringify(data));
+
+      // 4. Redirect over to the details visualizer page
+      router.push("/review");
+    } catch (error) {
+      console.error("API Processing Failed:", error);
+      alert("Failed to process receipts. Please ensure your backend is awake and metadata is structural.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f7f5f0] to-[#dfe9e3] flex items-center justify-center px-6">
-      <div className="relative w-full max-w-md h-screen">
+    <div className="min-h-screen bg-gradient-to-b from-[#f7f5f0] to-[#dfe9e3] flex items-center justify-center px-6 py-12">
+      <div className="relative w-full max-w-md">
         <motion.div
           className="absolute inset-0 rounded-[36px] blur-3xl opacity-30"
           animate={{
@@ -47,85 +96,80 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: "easeOut" }}
-          className="relative border border-white/40 rounded-[36px] p-8 bg-white/60 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.08)] flex flex-col justify-between h-full"
+          className="relative border border-white/40 rounded-[36px] p-8 bg-white/60 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.08)] flex flex-col justify-between"
         >
-          <motion.div
-            className="mt-4 flex justify-center"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-          >
-            <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold shadow-md">
-              AI
-            </div>
-          </motion.div>
-
-          <div className="text-center">
-            <motion.h1
-              className="text-4xl font-serif text-green-900 leading-tight"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              Review Expenses.
-              <br />
-              <span className="text-green-700 italic">With Policy AI.</span>
-            </motion.h1>
-
-            <motion.p
-              className="text-gray-700 text-sm mt-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-            >
-              Upload receipt PDFs or images and get AI-powered policy checks,
-              risk flags, citations, and reviewer-ready decisions.
-            </motion.p>
-
-            <div className="mt-10 flex justify-center gap-3 opacity-70">
-              <motion.div
-                animate={{ y: [0, -8, 0] }}
-                transition={{ duration: 5, repeat: Infinity }}
-                className="w-16 h-16 bg-green-200 rounded-full blur-[2px]"
-              />
-              <motion.div
-                animate={{ y: [0, -12, 0] }}
-                transition={{ duration: 6, repeat: Infinity }}
-                className="w-20 h-20 bg-green-300 rounded-full blur-[1px]"
-              />
-              <motion.div
-                animate={{ y: [0, -6, 0] }}
-                transition={{ duration: 5.5, repeat: Infinity }}
-                className="w-16 h-16 bg-green-100 rounded-full blur-[2px]"
-              />
+          <div>
+            <div className="flex justify-center">
+              <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold shadow-md">
+                AI
+              </div>
             </div>
 
-            <motion.div
-              className="mt-8"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.65 }}
-            >
+            <div className="text-center mt-4">
+              <h1 className="text-4xl font-serif text-green-900 leading-tight">
+                Review Expenses.
+                <br />
+                <span className="text-green-700 italic">With Policy AI.</span>
+              </h1>
+            </div>
+
+            {/* Form Inputs required by your backend parameters */}
+            <div className="mt-6 space-y-3 text-left">
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1">Employee Name</label>
+                <input 
+                  type="text" 
+                  value={employeeName}
+                  onChange={(e) => setEmployeeName(e.target.value)}
+                  className="w-full px-4 py-2 text-sm bg-white/80 border rounded-xl outline-none focus:border-green-500"
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Department</label>
+                  <input 
+                    type="text" 
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                    className="w-full px-4 py-2 text-sm bg-white/80 border rounded-xl outline-none focus:border-green-500"
+                    disabled={isLoading}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Grade</label>
+                  <input 
+                    type="text" 
+                    value={grade}
+                    onChange={(e) => setGrade(e.target.value)}
+                    className="w-full px-4 py-2 text-sm bg-white/80 border rounded-xl outline-none focus:border-green-500"
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Upload Area */}
+            <div className="mt-6">
               <label className="block border-2 border-dashed border-green-300 rounded-2xl p-5 bg-white/50 cursor-pointer hover:bg-white/70 transition">
                 <input
                   type="file"
                   multiple
                   accept=".pdf,.jpg,.jpeg,.png"
                   onChange={handleFileUpload}
+                  disabled={isLoading}
                   className="hidden"
                 />
-
                 <p className="text-green-900 font-semibold">
                   Upload receipts
                 </p>
-
                 <p className="text-xs text-gray-500 mt-1">
                   PDF, JPG, JPEG, PNG supported
                 </p>
               </label>
 
               {files.length > 0 && (
-                <div className="mt-3 text-left bg-white/60 rounded-xl p-3 max-h-24 overflow-y-auto">
+                <div className="mt-3 text-left bg-white/60 rounded-xl p-3 max-h-24 overflow-y-auto border">
                   {files.map((file, index) => (
                     <p key={index} className="text-xs text-gray-700 truncate">
                       {index + 1}. {file.name}
@@ -133,28 +177,29 @@ export default function LandingPage() {
                   ))}
                 </div>
               )}
-            </motion.div>
+            </div>
           </div>
 
-          <motion.div
-            className="w-full"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7 }}
-          >
+          {/* Trigger Button Area */}
+          <div className="w-full mt-6">
             <motion.button
               whileTap={{ scale: 0.96 }}
               whileHover={{ scale: 1.01 }}
               onClick={handleStartReview}
-              className="w-full bg-green-700 text-white py-4 rounded-2xl text-lg font-semibold shadow-md hover:bg-green-800 transition"
+              disabled={isLoading || files.length === 0}
+              className={`w-full text-white py-4 rounded-2xl text-lg font-semibold shadow-md transition ${
+                isLoading || files.length === 0
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-green-700 hover:bg-green-800"
+              }`}
             >
-              Start AI Review
+              {isLoading ? "Invoking Review Graph..." : "Start AI Review"}
             </motion.button>
 
             <p className="text-center text-xs text-gray-500 mt-3">
               PDF + image receipts · Policy-grounded review
             </p>
-          </motion.div>
+          </div>
         </motion.div>
       </div>
     </div>
