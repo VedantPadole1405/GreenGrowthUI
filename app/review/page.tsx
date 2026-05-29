@@ -7,7 +7,13 @@ export default function ReviewPage() {
 
   useEffect(() => {
     const saved = localStorage.getItem("reviewResult");
-    if (saved) setResult(JSON.parse(saved));
+    if (saved) {
+      try {
+        setResult(JSON.parse(saved));
+      } catch (e) {
+        console.error("Error parsing local review data:", e);
+      }
+    }
   }, []);
 
   if (!result) {
@@ -19,14 +25,26 @@ export default function ReviewPage() {
   }
 
   const getBadgeStyle = (verdict: string) => {
-    if (verdict === "compliant") return "bg-green-100 text-green-800 border-green-200";
-    if (verdict === "flagged") return "bg-yellow-100 text-yellow-800 border-yellow-200";
-    if (verdict === "rejected") return "bg-red-100 text-red-800 border-red-200";
+    const lower = (verdict || "").toLowerCase();
+    if (lower === "compliant") return "bg-green-100 text-green-800 border-green-200";
+    if (lower === "flagged") return "bg-yellow-100 text-yellow-800 border-yellow-200";
+    if (lower === "rejected") return "bg-red-100 text-red-800 border-red-200";
     return "bg-orange-100 text-orange-800 border-orange-200";
   };
 
-  const formatVerdict = (verdict: string) => {
+  const formatVerdict = (verdict: any) => {
+    if (typeof verdict !== "string") return "Needs Review";
     return verdict.replace("_", " ");
+  };
+
+  // Helper utility to safely print text variations or nested objects out of Groq responses
+  const renderTextSafely = (field: any, fallback: string) => {
+    if (!field) return fallback;
+    if (typeof field === "string") return field;
+    if (typeof field === "object") {
+      return field.text || field.message || JSON.stringify(field);
+    }
+    return String(field);
   };
 
   return (
@@ -42,7 +60,7 @@ export default function ReviewPage() {
           </h1>
 
           <p className="text-gray-600 mt-2">
-            Submission ID: {result.submission_id}
+            Submission ID: {renderTextSafely(result.submission_id, "N/A")}
           </p>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
@@ -55,7 +73,7 @@ export default function ReviewPage() {
                   {key.replace("_", " ")}
                 </p>
                 <p className="text-3xl font-bold text-green-900 mt-1">
-                  {value}
+                  {renderTextSafely(value, "0")}
                 </p>
               </div>
             ))}
@@ -65,8 +83,7 @@ export default function ReviewPage() {
         <div className="grid gap-6 mt-8">
           {result.receipts?.map((receipt: any, index: number) => {
             const verdict = receipt.decision?.verdict || "needs_review";
-            const reviewerAction =
-              receipt.decision?.reviewer_action ||
+            const reviewerAction = receipt.decision?.reviewer_action ||
               "Escalate this item to a human finance reviewer.";
 
             return (
@@ -81,13 +98,13 @@ export default function ReviewPage() {
                     </p>
 
                     <h2 className="text-2xl font-bold text-gray-900 mt-1">
-                      {receipt.file_name}
+                      {renderTextSafely(receipt.file_name, `receipt_${index + 1}`)}
                     </h2>
                   </div>
 
                   <span
                     className={`px-4 py-2 rounded-full text-sm font-semibold border ${getBadgeStyle(
-                      verdict
+                      String(verdict)
                     )}`}
                   >
                     {formatVerdict(verdict)}
@@ -105,7 +122,7 @@ export default function ReviewPage() {
                   <div className="bg-[#f7f5f0] rounded-2xl p-4">
                     <p className="text-xs text-gray-500">Confidence</p>
                     <p className="font-semibold text-gray-900 mt-1">
-                      {Math.round((receipt.decision?.confidence || 0) * 100)}%
+                      {Math.round((Number(receipt.decision?.confidence) || 0) * 100)}%
                     </p>
                   </div>
 
@@ -121,10 +138,8 @@ export default function ReviewPage() {
                   <h3 className="font-bold text-green-950">
                     Groq AI Recommendation
                   </h3>
-
                   <p className="text-gray-800 mt-2">
-                    {receipt.decision?.reasoning ||
-                      "No reasoning was returned by the model."}
+                    {renderTextSafely(receipt.decision?.reasoning, "No reasoning was returned by the model.")}
                   </p>
                 </div>
 
@@ -132,9 +147,8 @@ export default function ReviewPage() {
                   <h3 className="font-bold text-orange-900">
                     What the reviewer should do next
                   </h3>
-
                   <p className="text-gray-800 mt-2">
-                    {reviewerAction}
+                    {renderTextSafely(reviewerAction, "Review requirements explicitly.")}
                   </p>
                 </div>
 
@@ -148,18 +162,18 @@ export default function ReviewPage() {
                         className="mt-3 bg-gray-50 border rounded-2xl p-4"
                       >
                         <p className="text-sm font-semibold text-gray-900">
-                          {citation.policy_id}{" "}
+                          {renderTextSafely(citation.policy_id, "POLICY")} {" "}
                           <span className="text-gray-500">
-                            Section {citation.section}
+                            Section {renderTextSafely(citation.section, "N/A")}
                           </span>
                         </p>
 
                         <p className="text-sm text-gray-700 italic mt-2">
-                          “{citation.quote}”
+                          “{renderTextSafely(citation.quote, "No direct quote cited.")}”
                         </p>
 
                         <p className="text-xs text-gray-500 mt-2">
-                          Source: {citation.source_file}
+                          Source: {renderTextSafely(citation.source_file, "Policy Document")}
                         </p>
                       </div>
                     ))
@@ -174,11 +188,9 @@ export default function ReviewPage() {
                   <button className="px-5 py-3 rounded-2xl bg-green-700 text-white font-semibold hover:bg-green-800 transition">
                     Approve
                   </button>
-
                   <button className="px-5 py-3 rounded-2xl bg-yellow-500 text-white font-semibold hover:bg-yellow-600 transition">
                     Request Info
                   </button>
-
                   <button className="px-5 py-3 rounded-2xl bg-red-600 text-white font-semibold hover:bg-red-700 transition">
                     Reject
                   </button>
