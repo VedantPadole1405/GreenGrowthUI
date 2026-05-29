@@ -113,36 +113,36 @@ export default function LandingPage() {
               </h1>
             </div>
 
-            {/* Form Inputs required by your backend parameters */}
+            {/* Form Inputs with explicit black text colors added below */}
             <div className="mt-6 space-y-3 text-left">
               <div>
-                <label className="text-xs font-semibold text-gray-600 block mb-1">Employee Name</label>
+                <label className="text-xs font-bold text-green-950 block mb-1">Employee Name</label>
                 <input 
                   type="text" 
                   value={employeeName}
                   onChange={(e) => setEmployeeName(e.target.value)}
-                  className="w-full px-4 py-2 text-sm bg-white/80 border rounded-xl outline-none focus:border-green-500"
+                  className="w-full px-4 py-2 text-sm text-black placeholder-gray-400 bg-white border border-gray-200 rounded-xl outline-none focus:border-green-500 shadow-sm"
                   disabled={isLoading}
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 block mb-1">Department</label>
+                  <label className="text-xs font-bold text-green-950 block mb-1">Department</label>
                   <input 
                     type="text" 
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
-                    className="w-full px-4 py-2 text-sm bg-white/80 border rounded-xl outline-none focus:border-green-500"
+                    className="w-full px-4 py-2 text-sm text-black placeholder-gray-400 bg-white border border-gray-200 rounded-xl outline-none focus:border-green-500 shadow-sm"
                     disabled={isLoading}
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 block mb-1">Grade</label>
+                  <label className="text-xs font-bold text-green-950 block mb-1">Grade</label>
                   <input 
                     type="text" 
                     value={grade}
                     onChange={(e) => setGrade(e.target.value)}
-                    className="w-full px-4 py-2 text-sm bg-white/80 border rounded-xl outline-none focus:border-green-500"
+                    className="w-full px-4 py-2 text-sm text-black placeholder-gray-400 bg-white border border-gray-200 rounded-xl outline-none focus:border-green-500 shadow-sm"
                     disabled={isLoading}
                   />
                 </div>
@@ -169,9 +169,9 @@ export default function LandingPage() {
               </label>
 
               {files.length > 0 && (
-                <div className="mt-3 text-left bg-white/60 rounded-xl p-3 max-h-24 overflow-y-auto border">
+                <div className="mt-3 text-left bg-white/60 rounded-xl p-3 max-h-24 overflow-y-auto border border-gray-200">
                   {files.map((file, index) => (
-                    <p key={index} className="text-xs text-gray-700 truncate">
+                    <p key={index} className="text-xs text-black truncate font-medium">
                       {index + 1}. {file.name}
                     </p>
                   ))}
